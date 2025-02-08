@@ -1,0 +1,188 @@
+# OpenSSL configuration file
+openssl_conf = openssl_init
+
+[ openssl_init ]
+engines = engine_section
+oid_section = new_oids
+stbl_section = stable_section
+
+[ new_oids ]
+INNLE = 1.2.643.100.4
+OGRNIP = 1.2.643.100.5
+cryptoProClassSignToolKC1 = 1.2.643.100.113.1
+cryptoProClassSignToolKC2 = 1.2.643.100.113.2
+cryptoProClassSignToolKC3 = 1.2.643.100.113.3
+cryptoProClassSignToolKB1 = 1.2.643.100.113.4
+cryptoProClassSignToolKB2 = 1.2.643.100.113.5
+
+[ stable_section ]
+INNLE = min:10,max:10,mask:NUMERICSTRING,flags:nomask
+OGRN = min:13,max:13,mask:NUMERICSTRING,flags:nomask
+OGRNIP = min:15,max:15,mask:NUMERICSTRING,flags:nomask
+
+[ ca ]
+# `man ca`
+default_ca = CA_default
+
+[ CA_default ]
+# Directory and file locations.
+ca_name           = gost2012_256
+dir               = ./ca/$ca_name
+certs             = $dir/certs
+crl_dir           = $dir/crl
+new_certs_dir     = $dir/newcerts
+database          = $dir/index.txt
+serial            = $dir/serial
+RANDFILE          = $dir/private/.rand
+
+# The root key and root certificate.
+private_key       = $dir/ca.key.pem
+certificate       = $dir/ca.cert.pem
+
+# For certificate revocation lists.
+crlnumber         = $dir/crlnumber
+crl               = $dir/crl/ca.crl.pem
+crl_extensions    = crl_ext
+default_crl_days  = 30
+
+default_md        = md_gost12_256
+
+name_opt          = ca_default
+cert_opt          = ca_default
+default_days      = 365
+preserve          = no
+policy            = policy_strict
+
+[ policy_strict ]
+# See the POLICY FORMAT section of `man ca`.
+emailAddress            = optional
+streetAddress           = optional
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+givenName               = optional
+surname                 = optional
+title                   = optional
+organizationalUnitName  = optional
+organizationName        = optional
+SNILS                   = optional
+OGRNIP                  = optional
+OGRN                    = optional
+INNLE                   = optional
+INN                     = optional
+commonName              = optional
+
+[ policy_loose ]
+# See the POLICY FORMAT section of the `ca` man page.
+countryName             = optional
+commonName              = supplied
+
+[ req ]
+# Options for the `req` tool (`man req`).
+distinguished_name  = req_distinguished_name
+string_mask         = utf8only
+default_md          = md_gost12_256
+prompt              = no
+attributes          = req_attributes
+
+# Extension to add when the -x509 option is used.
+x509_extensions     = v3_ca
+
+[ req_distinguished_name ]
+emailAddress            = emailAddress
+streetAddress           = streetAddress
+countryName             = RU
+stateOrProvinceName     = stateOrProvinceName
+localityName            = localityName
+givenName               = givenName
+surname                 = surname
+title                   = title
+organizationalUnitName  = organizationalUnitName
+organizationName        = organizationName
+SNILS                   = 00000000000
+OGRNIP                  = 000000000000000
+OGRN                    = 0000000000000
+INNLE                   = 0000000000
+INN                     = 000000000000
+commonName              = commonName
+
+[ req_attributes ]
+
+[ v3_ca ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+certificatePolicies = cryptoProClassSignToolKC1, cryptoProClassSignToolKC2, cryptoProClassSignToolKC3, cryptoProClassSignToolKB1, cryptoProClassSignToolKB2, anyPolicy
+1.2.643.100.114 = ASN1:INTEGER:0
+1.2.643.100.111 = ASN1:UTF8String:Test CSP 1.0
+1.2.643.100.112 = ASN1:SEQUENCE:csp_info
+
+[ v3_sub_ca ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer:always
+basicConstraints = critical, CA:true, pathlen:0
+authorityInfoAccess     = caIssuers;URI:http://localhost:5080/cer/ca.${CA_default::ca_name}.cer
+crlDistributionPoints   = URI:http://localhost:5080/crl/ca.${CA_default::ca_name}.crl
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+certificatePolicies = cryptoProClassSignToolKC1, cryptoProClassSignToolKC2, cryptoProClassSignToolKC3, cryptoProClassSignToolKB1, cryptoProClassSignToolKB2, anyPolicy
+1.2.643.100.114 = ASN1:INTEGER:0
+1.2.643.100.111 = ASN1:UTF8String:Test CSP 1.0
+1.2.643.100.112 = ASN1:SEQUENCE:csp_info
+
+[ usr_cert ]
+# Extensions for client certificates (`man x509v3_config`).
+extendedKeyUsage        = 1.2.643.3.5.10.3.1, clientAuth, emailProtection
+1.2.643.100.114         = ASN1:INTEGER:0
+subjectKeyIdentifier    = hash
+certificatePolicies     = cryptoProClassSignToolKC1, cryptoProClassSignToolKC2
+privateKeyUsagePeriod   = ASN1:SEQUENCE:privateKeyUsagePeriod
+1.2.643.100.111         = ASN1:UTF8String:Test CSP 1.0
+1.2.643.100.112         = ASN1:SEQUENCE:csp_info
+authorityInfoAccess     = caIssuers;URI:http://localhost:5080/cer/ca.${CA_default::ca_name}.cer
+crlDistributionPoints   = URI:http://localhost:5080/crl/ca.${CA_default::ca_name}.crl
+#authorityKeyIdentifier = keyid:always,issuer:always
+keyUsage                = critical, nonRepudiation, digitalSignature, keyEncipherment, keyAgreement, dataEncipherment
+
+[ csp_info ]
+key.0 = FORMAT:UTF8,UTF8:Средство криптографической защиты информации СКЗИ Test CSP 1.0
+key.1 = FORMAT:UTF8,UTF8:Программный комплекс "Тестовый Удостоверяющий центр 1.0"
+key.2 = FORMAT:UTF8,UTF8:Сертификат соответствия № СФ/123-4567 от 01 января 2021 года
+key.3 = FORMAT:UTF8,UTF8:Сертификат соответствия № СФ/123-4568 от 01 января 2021 года
+
+[ privateKeyUsagePeriod ]
+notBefore               = IMPLICIT:0,GENERALIZEDTIME:20250101000000Z
+notAfter                = IMPLICIT:1,GENERALIZEDTIME:20260101235959Z
+
+[ server_cert ]
+# Extensions for server certificates (`man x509v3_config`).
+basicConstraints = CA:FALSE
+nsCertType = server
+nsComment = "OpenSSL Generated Server Certificate"
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer:always
+keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+
+[ crl_ext ]
+# Extension for CRLs (`man x509v3_config`).
+authorityKeyIdentifier=keyid:always
+
+[ ocsp ]
+# Extension for OCSP signing certificates (`man ocsp`).
+basicConstraints = CA:FALSE
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
+keyUsage = critical, digitalSignature
+extendedKeyUsage = critical, OCSPSigning
+
+# Engine section
+[engine_section]
+gost = gost_section
+
+# Engine gost section
+[gost_section]
+engine_id = gost
+dynamic_path = /usr/local/ssl/lib/engines-1.1/gost.so
+default_algorithms = ALL
+CRYPT_PARAMS = id-Gost28147-89-CryptoPro-A-ParamSet
