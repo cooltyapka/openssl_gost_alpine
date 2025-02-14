@@ -11,44 +11,35 @@ RUN apk --no-cache --virtual .build-deps add \
 		linux-headers \
     cmake \
     unzip \
+    git \
 	&& mkdir -p /usr/local/src
 
 # Build and install OpenSSL
-ARG OPENSSL_VERSION=1.1.1w
-ARG OPENSSL_SHA256="cf3098950cb4d853ad95c0841f1f9c6d3dc102dccfcacd521d93925208b76ac8"
+ARG OPENSSL_VERSION=3.4.1
+ARG OPENSSL_SHA256="002a2d6b30b58bf4bea46c43bdd96365aaf8daa6c428782aa4feee06da197df3"
 RUN cd /usr/local/src \
-  && wget "https://github.com/openssl/openssl/releases/download/OpenSSL_${OPENSSL_VERSION//./_}/openssl-${OPENSSL_VERSION}.tar.gz" -O "openssl-${OPENSSL_VERSION}.tar.gz" \
+  && wget "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VERSION}/openssl-${OPENSSL_VERSION}.tar.gz" -O "openssl-${OPENSSL_VERSION}.tar.gz" \
   && echo "$OPENSSL_SHA256" "openssl-${OPENSSL_VERSION}.tar.gz" | sha256sum -c - \
   && tar -zxvf "openssl-${OPENSSL_VERSION}.tar.gz" \
   && cd "openssl-${OPENSSL_VERSION}" \
-  && ./config no-async shared --prefix=/usr/local/ssl --openssldir=/usr/local/ssl -Wl,-rpath,/usr/local/ssl/lib \
+  && ./Configure no-docs no-tests --prefix=/opt/openssl --openssldir=/usr/local/ssl -Wl,-rpath=/opt/openssl/lib64 \
   && make && make install \
-  && cp /usr/local/ssl/bin/openssl /usr/bin/openssl \
-  && rm -rf "/usr/local/src/openssl-${OPENSSL_VERSION}.tar.gz" "/usr/local/src/openssl-${OPENSSL_VERSION}" \
-  && cp /usr/local/ssl/openssl.cnf /usr/local/ssl/openssl.default.cnf
+  && cp /opt/openssl/bin/openssl /usr/local/bin \
+  && rm -rf "/usr/local/src/openssl-${OPENSSL_VERSION}.tar.gz" "/usr/local/src/openssl-${OPENSSL_VERSION}"
 
-# Build GOST-engine for OpenSSL
-ARG GOST_ENGINE_VERSION=1_1_1
-ARG GOST_ENGINE_SHA256="f33ed1bc5bcdbe89b8b92ee9fbdceaf4de0f789f2dab42a1d3342f60f06ee1bb"
+
+# Build GOST engine
 RUN cd /usr/local/src \
-  && wget "https://github.com/gost-engine/engine/archive/refs/heads/openssl_${GOST_ENGINE_VERSION}.zip" -O gost-engine.zip \
-  && echo "$GOST_ENGINE_SHA256" gost-engine.zip | sha256sum -c - \
-  && unzip gost-engine.zip -d ./ \
-  && cd "engine-openssl_${GOST_ENGINE_VERSION}" \
-  && sed -i 's|printf("GOST engine already loaded\\n");|goto end;|' gost_eng.c \
-  && sed -i "s/-Werror //g" CMakeLists.txt \
+  && git clone https://github.com/gost-engine/engine \
+  && cd engine \
+  && git submodule update --init \
   && mkdir build \
   && cd build \
-  && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS='-I/usr/local/ssl/include -L/usr/local/ssl/lib' \
-   -DOPENSSL_ROOT_DIR=/usr/local/ssl  -DOPENSSL_INCLUDE_DIR=/usr/local/ssl/include -DOPENSSL_LIBRARIES=/usr/local/ssl/lib \
-   -DOPENSSL_ENGINES_DIR=/usr/local/ssl/lib/engines-1.1 .. \
-  && cmake --build . --config Release \
-  && cd bin \
-  && cp gostsum gost12sum /usr/local/bin \
-  && cp gost.so /usr/local/ssl/lib/engines-1.1 \
-  && rm -rf "/usr/local/src/gost-engine.zip" "/usr/local/src/engine-${GOST_ENGINE_VERSION}"
+  && cmake -DOPENSSL_ENGINES_DIR=/opt/openssl/lib64/engines-3 -DCMAKE_INSTALL_PREFIX:PATH=/opt/openssl -DOPENSSL_ROOT_DIR=/opt/openssl -DCMAKE_BUILD_TYPE=Release .. \
+  && cmake --build . --target install --config Release \
+  && rm -rf /usr/local/src/engine
 
-# Enable GOST-engine
+# Enable GOST engine
 COPY openssl.cnf /usr/local/ssl/
 
 # Clean build dependencies
